@@ -19,12 +19,26 @@ def review(path):
 
     for scope in [tree, *[n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]]:
         names = set()
+        bodies = {}
         for node in scope.body:
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) or not node.name.startswith("test"):
                 continue
             if node.name in names:
                 add(node, "duplicate-test", f"Duplicate test {node.name} in the same scope shadows an earlier definition.")
             names.add(node.name)
+            body = node.body
+            if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) and isinstance(body[0].value.value, str):
+                body = body[1:]
+            signature = (
+                type(node).__name__,
+                ast.dump(node.args, include_attributes=False),
+                tuple(ast.dump(decorator, include_attributes=False) for decorator in node.decorator_list),
+                ast.dump(ast.Module(body=body, type_ignores=[]), include_attributes=False),
+            )
+            if body and signature in bodies and bodies[signature] != node.name:
+                add(node, "duplicate-test-body", f"{node.name} repeats the exact body of {bodies[signature]} with identical parameters and decorators; remove redundant tests or clarify distinct behavior.")
+            else:
+                bodies[signature] = node.name
             assertions = []
             for child in ast.walk(node):
                 if isinstance(child, ast.Assert):

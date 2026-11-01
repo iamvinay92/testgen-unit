@@ -4,4 +4,4 @@ The CLI executes project tools during validation, coverage, compilation/collecti
 
 Generation prints local source context; sharing it with a model is a separate user action. Static review cannot certify that tests are safe or correct.
 
-Until a private reporting channel is configured for the public repository, report a potential vulnerability privately to the repository owner. Do not include credentials or exploit details in a public issue. The reporting channel must be set before publication.
+Report vulnerabilities using [GitHub private vulnerability reporting](https://github.com/iamvinay92/testgen-unit/security/advisories/new). Do not include credentials or exploit details in a public issue. Private vulnerability reporting must be enabled when the repository is made public.

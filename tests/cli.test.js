@@ -174,6 +174,16 @@ test('Python static review uses AST and detects shadowed tests and syntax errors
   assert.ok(result.data.findings.some(f => f.category === 'syntax'));
 });
 
+test('Python review flags identical test bodies but distinguishes fixture parameters and decorators', t => {
+  if (spawnSync('python3', ['--version']).status !== 0) { t.skip('python3 unavailable'); return; }
+  const dir = fixture(t); write(dir, 'pyproject.toml'); write(dir, 'price.py', 'def value(): return 1\n'); committed(dir);
+  write(dir, 'tests/test_price.py', 'from price import value\ndef test_first():\n    assert value() == 1\ndef test_second():\n    """Duplicate with a different description."""\n    assert value() == 1\ndef test_fixture(custom_fixture):\n    assert value() == 1\n@different_marker\ndef test_marked():\n    assert value() == 1\n');
+  const result = invoke(dir, ['review-unit-tests', '--skip-coverage', '--fail-on-issues']);
+  assert.equal(result.code, 1);
+  const duplicates = result.data.findings.filter(f => f.category === 'duplicate-test-body');
+  assert.equal(duplicates.length, 1); assert.match(duplicates[0].message, /test_second.*test_first/);
+});
+
 test('Python status forwards interpreter errors and rejects invalid runner/configuration', t => {
   const dir = fixture(t); write(dir, 'pyproject.toml');
   assert.equal(invoke(dir, ['unit-status', '--check', '--python', '/no-such-python']).code, 1);
