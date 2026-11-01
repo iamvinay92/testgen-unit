@@ -24,7 +24,7 @@ The agent writes tests. The CLI runs your project's tools and reports what actua
 Install [Node.js 22+](https://nodejs.org/en/download), npm and Git, then run:
 
 ```sh
-npm install -g 'git+https://github.com/iamvinay92/testgen-unit.git#v0.1.0'
+npm install -g 'https://github.com/iamvinay92/testgen-unit/releases/download/v0.1.0/testgen-unit-0.1.0.tgz'
 testgen-unit --version
 ```
 
@@ -32,11 +32,11 @@ If global installation needs administrator permission, use a writable directory:
 
 ```sh
 npm install -g --prefix "$HOME/.local" \
-  'git+https://github.com/iamvinay92/testgen-unit.git#v0.1.0'
+  'https://github.com/iamvinay92/testgen-unit/releases/download/v0.1.0/testgen-unit-0.1.0.tgz'
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-The CLI is called **`testgen-unit`**. GitHub is currently the installation source; an npm registry release is a separate step.
+The CLI is called **`testgen-unit`**. The GitHub release tarball is the recommended installation source; an npm registry release is a separate step.
 
 ## 2. Check your project
 
