@@ -1,64 +1,63 @@
 # testgen-unit
 
-A small CLI and coding-agent skill for **Go, Java and Python unit tests**. Inspect an existing project, establish a baseline, emit a scoped prompt, validate tests, measure coverage, and review changes.
+**Write better unit tests with your coding agent—or a local model.**
 
-Use an existing AI coding agent or a local model through Ollama. The agent writes tests; the CLI runs checks and reports their evidence. Prompt and check commands require no model API key, private service, Bash, or jq. Optional direct generation supports Ollama and compatible APIs.
+`testgen-unit` helps you improve **Go, Java and Python** test suites through a repeatable workflow:
 
-**Start here:** [Local model and agent setup](docs/local-models.md). In your target repository, run `testgen-unit install-skill` and use your existing agent, or `ollama launch opencode` with a local model.
+**Measure → generate → validate → measure again → review.**
 
-## Install from this checkout
+The agent writes tests. The CLI runs your project's tools and reports what actually happened. Use your existing AI agent, local Ollama models, or a compatible API.
 
-Requires Node.js 22 or newer and the target project's toolchain. This package has no npm runtime dependencies.
+[![Checks](https://github.com/iamvinay92/testgen-unit/actions/workflows/ci.yml/badge.svg)](https://github.com/iamvinay92/testgen-unit/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+## Why use it?
+
+- **Works with existing repositories.** Discover projects, reuse tests and fixtures, and preserve customized guidance.
+- **Supports local models.** Use Ollama without a paid model API, or keep your current agent/provider setup.
+- **Checks the results.** Run validation, coverage and review through one CLI.
+- **Keeps scope explicit.** Select a language, project or Go package. Generate tests without changing production code or dependencies.
+- **Small installation.** No npm runtime dependencies, private services, Bash or jq required by the CLI.
+
+## 1. Install
+
+Install [Node.js 22+](https://nodejs.org/en/download), npm and Git, then run:
 
 ```sh
-npm install -g .
+npm install -g 'git+https://github.com/iamvinay92/testgen-unit.git#v0.1.0'
 testgen-unit --version
-testgen-unit --help
 ```
 
-For an installation without administrator access:
+If global installation needs administrator permission, use a writable directory:
 
 ```sh
-npm install -g --prefix "$HOME/.local" .
+npm install -g --prefix "$HOME/.local" \
+  'git+https://github.com/iamvinay92/testgen-unit.git#v0.1.0'
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-You can also run `node /path/to/testgen-unit/bin/testgen-unit.js` without installing anything. This repository is prepared for publication; an npm registry release is not yet available through this project.
+The CLI is called **`testgen-unit`**. GitHub is currently the installation source; an npm registry release is a separate step.
 
-## First run
+## 2. Check your project
 
-From a trusted target repository:
+You also need your project's language tools and existing test dependencies:
 
-```sh
-testgen-unit doctor --language python
-testgen-unit unit-status --language python --check --json
-testgen-unit unit-coverage --language python --json
-testgen-unit unit-init --language python --check-only
-testgen-unit unit-init --language python --skip-claude-commands
-testgen-unit generate-unit-tests --language python --dry-run -- "Cover validation and error paths"
-```
-
-Give the emitted prompt to your coding agent, or run `testgen-unit install-skill` to install [the skill](skills/testgen-unit-tests/SKILL.md). After writing a small batch:
-
-```sh
-testgen-unit validate-unit-tests --language python
-testgen-unit unit-coverage --language python --fail-under 80 --json
-testgen-unit review-unit-tests --language python --fail-on-issues --json
-```
-
-Use `--language go` or `--language java` for the other runtimes. A coverage target is optional; 80 above is an example. Repeat meaningful batches until your requested target is met or concrete blockers remain. The CLI itself never generates tests or claims that a prompt has been executed.
-
-## Runtime support
-
-| Language | Discovery and checks | Coverage |
+| Language | Requirements | Coverage |
 | --- | --- | --- |
-| Go | `go.mod`; `go list`, `go test`; Go and gofmt on PATH | Statement counts from a fresh `go test -coverprofile` run |
-| Java | Maven/Gradle descriptors; existing wrapper preferred, otherwise installed Maven/Gradle; required JDK | Fresh JaCoCo XML from existing build configuration; line counts |
-| Python | `pyproject.toml`, `setup.py`, `setup.cfg`, `pytest.ini`, or a simple directory containing Python files; pytest or unittest | coverage.py in the selected Python environment; statement counts |
+| Go | Go version required by `go.mod`, plus `gofmt` | Go statement coverage |
+| Java | Required JDK and Maven/Gradle; existing wrappers are preferred | Existing JaCoCo configuration with XML output |
+| Python | Python 3.10+, pytest or unittest, and coverage.py | Python statement coverage |
 
-Go must satisfy the target's `go.mod`. Java must satisfy its build. Python support targets Python 3.10+. The CLI does not install or upgrade target dependencies.
+From your repository:
 
-For Python, use the existing environment or create one explicitly:
+```sh
+cd /path/to/your/repository
+testgen-unit doctor --language python
+```
+
+Replace `python` with `go` or `java`. The CLI reports missing tools; it does not install or upgrade project dependencies.
+
+For a new Python test environment:
 
 ```sh
 python3 -m venv .venv
@@ -66,13 +65,82 @@ python3 -m venv .venv
 testgen-unit doctor --language python --python .venv/bin/python
 ```
 
-Use `--python /absolute/path/to/python` when working across directories. By default the CLI uses the project's `.venv`, the active virtualenv, then `python3` (`python` on Windows). `--runner unittest` uses standard-library discovery; coverage still requires coverage.py. For unittest, `unit-status --check` runs tests because unittest has no collection-only command; `--compile-only` is unsupported. Exclusions inside unittest's discovery directory are rejected: narrow `pythonTestDir` or use pytest. Empty unittest discovery is a failure. Pytest status checks collection. Go/Java status checks compile tests. Linux and macOS are the tested platforms; Windows build wrappers are not supported in v0.1.
+## 3. Install the skill and ask your agent
 
-## Scope and configuration
+```sh
+testgen-unit install-skill
+```
 
-`-d DIR` selects the target repository. `--module path` selects one exact project; `--module .` selects all projects of the chosen language. Mixed-language repositories require `--language`. Nested projects are discovered separately. `--exclude path` excludes a subtree from discovery; Go/Python also exclude those paths from package/test/coverage selection. Java test selection is owned by its build; discovery exclusions do not rewrite an aggregate Maven/Gradle build.
+This adds the skill to your repository's `.agents/skills/`, `.claude/skills/` and `.opencode/skills/` directories. Existing skill files are preserved. Install just one with `--agent agents`, `--agent claude` or `--agent opencode`.
 
-`--package ./internal/foo` selects Go packages. `--file path` supplies generation context or selects static review files; validation and coverage remain at project/package scope. Python test selection follows the existing runner configuration. Custom Python runners (tox, nox, Poetry commands), Maven aggregate coverage, and nonstandard JaCoCo report paths are not supported in v0.1.
+Reload your agent if needed, then ask:
+
+> Use the testgen-unit-tests skill. Measure current unit-test coverage in this repository and increase it to 80%. Add deterministic tests for real production behavior. Only edit test files. Validate, measure and review after each batch. Report before/after coverage and blockers.
+
+Change or omit the example coverage target. Ask for a branch or PR when you want one. If your agent does not discover skills, ask it to read the installed `SKILL.md` directly.
+
+### Prefer a local model?
+
+Install [Ollama](https://docs.ollama.com/quickstart), start its server and download a model your machine can run. From your repository:
+
+```sh
+ollama list
+testgen-unit install-skill --agent opencode
+ollama launch opencode
+```
+
+Choose a **local** model, then use the same request above. Ollama's launcher offers to install OpenCode when needed. Local inference needs no paid model API, but still requires hardware, storage and compute. Check the model's license and requirements.
+
+See the [local model guide](docs/local-models.md) for prerequisites, existing-agent setup and API-backed usage.
+
+## Use the CLI directly
+
+You can also drive each step yourself:
+
+```sh
+testgen-unit unit-status --language python --check
+testgen-unit unit-coverage --language python --json
+testgen-unit unit-init --language python --check-only
+testgen-unit unit-init --language python --skip-claude-commands
+testgen-unit generate-unit-tests --language python --dry-run -- "Cover validation errors"
+```
+
+Give the emitted prompt to your agent. After writing a focused batch:
+
+```sh
+testgen-unit validate-unit-tests --language python
+testgen-unit unit-coverage --language python --fail-under 80 --json
+testgen-unit review-unit-tests --language python --fail-on-issues
+```
+
+`unit-init` adds missing guidance and preserves existing files. No default coverage target is imposed.
+
+### Request suggestions from Ollama
+
+Use the exact model name shown by `ollama list`:
+
+```sh
+testgen-unit generate-unit-tests --language python --file price.py \
+  --provider ollama --model YOUR_INSTALLED_MODEL --timeout 600000 \
+  -- "Cover validation and error paths"
+```
+
+**Direct generation prints suggestions.** It does not apply files, execute tests or autonomously repeat the loop. Review and apply the output, then run validation, coverage and review. Use a coding agent for orchestration.
+
+Plain prompt generation and checks require no model key. Only explicit `--provider` generation sends scoped source context to the chosen endpoint. Compatible local servers and API providers are supported; see [examples and key configuration](docs/local-models.md).
+
+## Select a scope
+
+| Option | Purpose |
+| --- | --- |
+| `-d DIR` | Target repository |
+| `--language go\|java\|python` | Select a runtime; required for mixed-language repositories |
+| `--module PATH` | Select one discovered project; `.` selects all projects of that language |
+| `--package ./internal/foo` | Select Go packages |
+| `--file PATH` | Select prompt context or static review files; not validation/coverage scope |
+| `--exclude PATH` | Exclude project subtrees |
+| `--python /path/to/python` | Select a Python environment |
+| `--runner unittest` | Use unittest instead of the default pytest |
 
 Optional `.testgen/config.json`:
 
@@ -85,30 +153,31 @@ Optional `.testgen/config.json`:
 }
 ```
 
-Python source/test paths are relative to each selected project. Set `pythonSources` to the production directories you intend to measure; default is `.`. Coverage excludes conventional Python test files and selected nested/excluded projects. Existing coverage.py settings (for example branch collection) still apply, but the reported percentage always uses covered/total statements. Java coverage requires XML at `target/site/jacoco/jacoco.xml` or `build/reports/jacoco/test/jacocoTestReport.xml`. Missing coverage is **unavailable**, never 0 or a pass.
+Python paths are relative to each selected project. `pythonSources` defaults to `.`. Set it to the production directories you intend to measure. Java exclusions affect discovery; an aggregate Maven/Gradle build still owns its own test selection.
 
-Totals are weighted by statement/line counts across fully measured projects **within one language**. If any selected project fails or has unavailable coverage, that language's overall percentage is unavailable. Go/Python statements and Java lines are different metrics; do not compare or average them as one number.
+Run `testgen-unit --help` for all options.
 
-## Safety and evidence
+## What has been tested?
 
-- `unit-init` adds only missing guidance and preserves existing `AGENTS.md`, prompts, and Claude commands. Use `--check-only` to preview.
-- Generation emits up to 60,000 characters of source/test context to stdout. Only explicit `--provider` generation transmits context to the chosen model endpoint. The response is unvalidated suggestions and never automatically applied.
-- Validation, coverage, doctor (build-wrapper version checks), and `unit-status --check` can execute project code. Run them only on trusted repositories. Subprocesses have a configurable per-command timeout (`--timeout`, milliseconds).
-- Review checks for common sleep, assertion, duplicate-test and Git scope problems. These are heuristics, not proof of test quality or absence of network access. Python review parses AST without importing target code.
-- Review compares Git changes against `HEAD` or `--base REF`, including untracked files. Inspect baseline and onboarding findings. `--skip-coverage` avoids test execution; `--fail-on-issues` makes findings fail the command.
-- Validation's `--forbid-source-changes` rejects changes outside conventional test paths. Run it in an initialized Git repository with a baseline commit. Onboarding guidance can be reported as non-test changes: record it separately rather than suppressing findings.
-- Normalized JSON contains command argument arrays, captured output, project statuses, and coverage counts. Exit 0 means the requested checks completed; failed or unavailable checks exit nonzero. Review findings exit nonzero only with `--fail-on-issues`.
-- Git branch creation, committing, pushing, and opening PRs belong to the user or agent. The CLI never publishes repository changes.
+- Regression tests cover discovery, scope boundaries, preserved guidance, failure handling, coverage totals, Git guards and model transports.
+- Real Go, Maven, Gradle, pytest and unittest examples are included in [examples/](examples/).
+- A real local **Qwen 2.5 Coder 14B** run raised coverage by at least 10 percentage points in three small demo repositories. The [full report](docs/validation/ollama-qwen2.5-coder-14b.md) includes the deliberately partial baselines and required corrections.
 
-## Develop
+These demos verify integration; they are not benchmarks of production-repository effectiveness. The model needed corrections, including preserving an existing test and removing an invented assertion.
 
-```sh
-npm test
-npm run check
-EXAMPLE_LANGUAGE=go npm run test:examples
-EXAMPLE_LANGUAGE=python npm run test:examples
-EXAMPLE_LANGUAGE=java npm run test:examples
-npm pack --dry-run
-```
+## Limits to understand
 
-Example checks run actual toolchains; Java downloads public test/build dependencies. See [CONTRIBUTING.md](CONTRIBUTING.md), [release checklist](docs/releasing.md), and the [technical article draft](docs/blog-draft.md). MIT license; see [LICENSE](LICENSE). Publication and package-name availability remain release gates.
+- Coverage is evidence, not proof of regression protection. Review assertions against production behavior.
+- Go/Python report statements; Java reports lines. Totals are weighted within a language and never averaged across languages. Missing or failed coverage makes the overall selected-language total unavailable.
+- Review is heuristic. It checks recognizable assertions, sleeps, duplicate tests, identical Python test bodies and Git scope changes. It cannot certify semantic correctness or isolation.
+- Validation and coverage execute project code. Use trusted repositories. `review-unit-tests --skip-coverage` performs static review and Git inspection; Python source is parsed without importing it.
+- Git review needs a baseline commit. It includes untracked files and compares against `HEAD` or `--base REF`. Record onboarding and existing changes separately.
+- Java coverage needs fresh XML at `target/site/jacoco/jacoco.xml` or `build/reports/jacoco/test/jacocoTestReport.xml`. Aggregate/custom report locations are outside v0.1 support.
+- Unittest status checks run tests; collection-only mode is unsupported. Exclusions inside its discovery directory require narrower `pythonTestDir` or pytest. Empty unittest suites fail.
+- Custom Python runner commands and Windows build wrappers are outside v0.1 support. Linux and macOS are the CI platforms.
+
+## Contribute
+
+From a checkout, run `npm test` and `npm run check`. Use `EXAMPLE_LANGUAGE=go|java|python npm run test:examples` for real toolchain examples, replacing the language placeholder. `npm run test:ollama` is an opt-in local-model check; see [setup](docs/local-models.md).
+
+Read [contributor guidance](CONTRIBUTING.md), [security reporting](SECURITY.md) and the [release checklist](docs/releasing.md). Licensed under [MIT](LICENSE).

@@ -80,8 +80,20 @@ Only explicit `--provider` generation transmits context. API charges and source 
 
 ## Model experience
 
-The maintainer reports experiments with `Qwen/Qwen3.8-27B-FP8` and `DeepSeek-V4-Flash`. These are reported identifiers, not bundled downloads, verified Ollama tags or a published benchmark. Record model revision, serving runtime, hardware, context limit and measured test results before making reproducible claims. This release's transport tests use protocol fixtures, not those weights.
+The maintainer reports experiments with `Qwen/Qwen3.8-27B-FP8` and `DeepSeek-V4-Flash`. These are reported identifiers, not bundled downloads, verified Ollama tags or a published benchmark. Record model revision, serving runtime, hardware, context limit and measured test results before making reproducible claims. Unit transport tests use protocol fixtures. A separate [real local Qwen 2.5 Coder smoke test](validation/ollama-qwen2.5-coder-14b.md) documents measured demo results and the corrections it required.
 
 Start with one file or small package. Full repository work benefits from sufficient context and tool use support. Model output can be wrong; validation and review remain necessary.
+
+## Run the real-model smoke test
+
+From a toolkit checkout, with the three language toolchains and Python test dependencies available:
+
+```sh
+OLLAMA_MODEL=qwen2.5-coder:14b-32k \
+EXAMPLE_PYTHON=/absolute/path/to/python \
+npm run test:ollama
+```
+
+This opt-in command uses your local Ollama server, makes three temporary standalone demo repositories, seeds deliberately partial baselines, asks the model for at least +10 percentage points, and runs validation, coverage and review. It saves responses, diffs and results in the printed evidence directory. It can apply generated code and execute tests inside those demos; review the runner before use. Your original repositories are not edited. It is never run by `npm test` or CI automatically. Use `SMOKE_LANGUAGE=go`, `java` or `python` to select one language.
 
 References: [Ollama quickstart](https://docs.ollama.com/quickstart), [generation API](https://docs.ollama.com/api/generate), [compatible API](https://docs.ollama.com/api/openai-compatibility), [OpenCode providers](https://opencode.ai/docs/providers/), [pytest invocation](https://docs.pytest.org/en/stable/how-to/usage.html), [coverage.py](https://coverage.readthedocs.io/en/latest/commands/cmd_run.html).
