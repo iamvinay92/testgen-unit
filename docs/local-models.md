@@ -19,10 +19,10 @@ Install Node.js from [official downloads](https://nodejs.org/en/download). Insta
 ## Recommended: local model plus coding agent
 
 1. Install [Ollama](https://docs.ollama.com/quickstart), start its app/server and download a local model your machine can run. Use `ollama list` to find its exact name. Hosted model identifiers are not necessarily Ollama tags.
-2. Install the toolkit from its checkout:
+2. Install the toolkit from npm:
 
    ```sh
-   npm install -g /path/to/testgen-unit
+   npm install -g testgen-unit
    ```
 
 3. In your target repository:
