@@ -1,0 +1,17 @@
+{
+  "name": "testgen-unit",
+  "version": "0.1.0",
+  "description": "Agent prompts, validation, coverage and review for Go, Java and Python unit tests",
+  "type": "module",
+  "bin": { "testgen-unit": "bin/testgen-unit.js" },
+  "files": ["bin/", "lib/", "skills/", "docs/", "README.md", "LICENSE"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node --check bin/testgen-unit.js && node --check lib/projects.js && node --check lib/runtimes.js && node --check lib/workflow.js && node --check lib/providers.js",
+    "prepack": "npm run check",
+    "test:examples": "node tests/examples.js"
+  },
+  "keywords": ["unit-testing", "coding-agent", "coverage", "go", "java", "python", "pytest"],
+  "license": "MIT"
+}
