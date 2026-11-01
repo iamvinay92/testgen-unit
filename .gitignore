@@ -1,0 +1,13 @@
+node_modules/
+*.tgz
+.DS_Store
+.env
+.env.*
+.venv/
+__pycache__/
+.pytest_cache/
+.coverage*
+coverage.json
+build/
+target/
+.gradle/
