@@ -58,6 +58,8 @@ testgen-unit generate-unit-tests --language python --file price.py \
 
 Use the exact installed model name. The default server is `http://127.0.0.1:11434`. Dry runs never contact a model. Explicit provider calls send scoped source context to the chosen endpoint and print unvalidated suggestions. Review/apply them, then run validation, coverage and review. Direct mode does not edit files or autonomously repeat the loop.
 
+The emitted prompt includes reference-only line numbers for each source file; callers should prefer function or branch names in the goal and re-check line references before applying output. Prompt size drives local-model latency. Start with one or two `--file` entries and a larger `--timeout` when needed; a truncated or time-limited response fails rather than claiming generated tests.
+
 Already running a compatible local server such as LM Studio or vLLM? Use its Chat Completions endpoint:
 
 ```sh

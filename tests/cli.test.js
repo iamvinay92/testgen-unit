@@ -6,7 +6,7 @@ import { join, dirname, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { discover, inside } from '../lib/projects.js';
-import { aggregate, run } from '../lib/runtimes.js';
+import { aggregate, parseSkipped, run } from '../lib/runtimes.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const cli = join(root, 'bin/testgen-unit.js');
@@ -101,6 +101,7 @@ test('generation emits real scoped context without writing tests', t => {
   const result = invoke(dir, ['generate-unit-tests', '--dry-run', '--file', 'price.go', '--', 'Cover validation']);
   assert.equal(result.code, 0); assert.match(result.data.prompt, /func Value/);
   assert.match(result.data.prompt, /Cover validation/); assert.match(result.data.prompt, /UNTRUSTED SOURCE/);
+  assert.match(result.data.prompt, /1 \| package price/); assert.match(result.data.prompt, /reference-only/);
   assert.ok(!existsSync(join(dir, 'price_test.go')));
   assert.equal(invoke(dir, ['generate-unit-tests', '--file', '../outside']).code, 1);
 });
@@ -139,6 +140,13 @@ test('coverage totals are weighted and incomplete groups never report a total', 
   assert.equal(aggregate([{ language: 'go', status: 'pass', covered: 1, total: 1, coveragePercent: 100 }, { language: 'go', status: 'fail' }]).go.percent, null);
 });
 
+test('skip parsing understands pytest, unittest and Maven summaries', () => {
+  assert.equal(parseSkipped('748 passed, 132 skipped in 12.35s'), 132);
+  assert.equal(parseSkipped('\x1b[32mOK (skipped=2)\x1b[0m'), 2);
+  assert.equal(parseSkipped('Tests run: 4, Failures: 0, Errors: 0, Skipped: 1'), 1);
+  assert.equal(parseSkipped('no skipped tests'), 0);
+});
+
 test('Git guard catches staged source edits and untracked source files but accepts tests', t => {
   const dir = fixture(t); go(dir); committed(dir);
   write(dir, 'price_test.go', 'package price\n');
@@ -160,6 +168,33 @@ test('Go review finds real sleeps and package duplicate test names but ignores c
   assert.equal(result.code, 1);
   assert.ok(result.data.findings.some(f => f.category === 'duplicate-test'));
   assert.ok(result.data.findings.some(f => f.category === 'nondeterminism'));
+});
+
+test('review treats committed findings as baseline while gating new changes', t => {
+  const dir = fixture(t); go(dir);
+  write(dir, 'price_test.go', 'package price\nfunc TestPrice(t *testing.T) {}\n');
+  committed(dir);
+  let result = invoke(dir, ['review-unit-tests', '--skip-coverage', '--fail-on-issues']);
+  assert.equal(result.code, 0);
+  assert.ok(result.data.findings.some(f => f.category === 'weak-assertion' && f.baseline === true));
+  assert.equal(invoke(dir, ['review-unit-tests', '--skip-coverage', '--fail-on-issues', '--fail-on-baseline']).code, 1);
+  write(dir, 'price_test.go', 'package price\nfunc TestPrice(t *testing.T) {}\n// changed\n');
+  result = invoke(dir, ['review-unit-tests', '--skip-coverage', '--fail-on-issues']);
+  assert.equal(result.code, 1);
+  assert.ok(result.data.findings.every(f => f.baseline === false));
+});
+
+test('review ignores managed onboarding files but still flags customized guidance', t => {
+  const dir = fixture(t); go(dir); committed(dir);
+  assert.equal(invoke(dir, ['unit-init', '--skip-claude-commands']).code, 0);
+  assert.equal(invoke(dir, ['install-skill', '--agent', 'all']).code, 0);
+  let result = invoke(dir, ['review-unit-tests', '--skip-coverage', '--fail-on-issues']);
+  assert.equal(result.code, 0);
+  assert.equal(result.data.findings.filter(f => f.category === 'non-test-change').length, 0);
+  write(dir, 'AGENTS.md', 'Custom user guidance\n');
+  result = invoke(dir, ['review-unit-tests', '--skip-coverage', '--fail-on-issues']);
+  assert.equal(result.code, 1);
+  assert.ok(result.data.findings.some(f => f.file === 'AGENTS.md' && f.baseline === false));
 });
 
 test('Python static review uses AST and detects shadowed tests and syntax errors', t => {
@@ -192,6 +227,43 @@ test('Python status forwards interpreter errors and rejects invalid runner/confi
   assert.equal(invoke(dir, ['unit-coverage', '--package', './...']).code, 1);
   write(dir, '.testgen/config.json', '{"pythonSources": "src"}');
   assert.equal(invoke(dir, ['unit-coverage']).code, 1);
+});
+
+test('Python coverage surfaces skipped tests and warns about under-reporting', t => {
+  const dir = fixture(t); write(dir, 'pyproject.toml'); write(dir, 'price.py', 'def value(): return 1\n');
+  write(dir, 'tools/python', `#!/usr/bin/env node
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+if (args.includes('json')) {
+  const index = args.indexOf('-o');
+  fs.writeFileSync(args[index + 1], JSON.stringify({ totals: { covered_lines: 3, num_statements: 4 } }));
+} else {
+  console.log('1 passed, 2 skipped in 0.01s');
+}
+`, 0o755);
+  const result = invoke(dir, ['unit-coverage', '--python', join(dir, 'tools/python')]);
+  assert.equal(result.code, 0);
+  assert.equal(result.data.projects[0].skippedTests, 2);
+  assert.match(result.data.warnings[0], /2 tests skipped/);
+});
+
+test('failed runs include the underlying error in the blocker', t => {
+  const dir = fixture(t); write(dir, 'pyproject.toml'); write(dir, 'price.py', 'def value(): return 1\n');
+  write(dir, 'tools/python', `#!/usr/bin/env node
+console.error('______________________ ERROR collecting tests/test_app.py ______________________');
+console.error("E   ModuleNotFoundError: No module named 'freezegun'");
+process.exitCode = 2;
+`, 0o755);
+  const python = join(dir, 'tools/python');
+  const coverage = invoke(dir, ['unit-coverage', '--python', python]);
+  assert.equal(coverage.code, 1);
+  assert.match(coverage.data.projects[0].blocker, /ModuleNotFoundError/);
+  assert.match(coverage.data.projects[0].blocker, /freezegun/);
+  assert.doesNotMatch(coverage.data.projects[0].blocker, /install coverage\.py/);
+  assert.doesNotMatch(coverage.data.projects[0].blocker, /ERROR collecting/);
+  const validate = invoke(dir, ['validate-unit-tests', '--python', python]);
+  assert.equal(validate.code, 1);
+  assert.match(validate.data.projects[0].blocker, /freezegun/);
 });
 
 test('Java Maven wrapper dispatch and JaCoCo counters use fresh XML only', t => {
