@@ -36,7 +36,7 @@ npm install -g --prefix "$HOME/.local" \
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-The CLI is called **`testgen-unit`**. The package is available on [npm](https://www.npmjs.com/package/testgen-unit). A pinned tarball is also available from [GitHub Releases](https://github.com/iamvinay92/testgen-unit/releases/tag/v0.1.0).
+The CLI is called **`testgen-unit`**. The package is available on [npm](https://www.npmjs.com/package/testgen-unit). A pinned tarball is also available from [GitHub Releases](https://github.com/iamvinay92/testgen-unit/releases).
 
 ## 2. Check your project
 
