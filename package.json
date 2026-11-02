@@ -1,14 +1,32 @@
 {
   "name": "testgen-unit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Agent prompts, validation, coverage and review for Go, Java and Python unit tests",
-  "repository": { "type": "git", "url": "git+https://github.com/iamvinay92/testgen-unit.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iamvinay92/testgen-unit.git"
+  },
   "homepage": "https://github.com/iamvinay92/testgen-unit#readme",
-  "bugs": { "url": "https://github.com/iamvinay92/testgen-unit/issues" },
+  "bugs": {
+    "url": "https://github.com/iamvinay92/testgen-unit/issues"
+  },
   "type": "module",
-  "bin": { "testgen-unit": "bin/testgen-unit.js" },
-  "files": ["bin/", "lib/", "skills/", "docs/", "README.md", "LICENSE"],
-  "engines": { "node": ">=22" },
+  "bin": {
+    "testgen-unit": "bin/testgen-unit.js"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "skills/",
+    "docs/local-models.md",
+    "docs/releasing.md",
+    "docs/validation/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "test": "node --test tests/*.test.js",
     "check": "node --check bin/testgen-unit.js && node --check lib/projects.js && node --check lib/runtimes.js && node --check lib/workflow.js && node --check lib/providers.js",
@@ -16,6 +34,14 @@
     "test:examples": "node tests/examples.js",
     "test:ollama": "node tests/ollama-smoke.js"
   },
-  "keywords": ["unit-testing", "coding-agent", "coverage", "go", "java", "python", "pytest"],
+  "keywords": [
+    "unit-testing",
+    "coding-agent",
+    "coverage",
+    "go",
+    "java",
+    "python",
+    "pytest"
+  ],
   "license": "MIT"
 }

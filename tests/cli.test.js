@@ -10,6 +10,7 @@ import { aggregate, parseSkipped, run } from '../lib/runtimes.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const cli = join(root, 'bin/testgen-unit.js');
+const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 function fixture(t) {
   const dir = mkdtempSync(join(tmpdir(), 'testgen-unit-test-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
@@ -49,7 +50,7 @@ else { const flag = args.find(a => a.startsWith('-coverprofile=')); if (flag) fs
 test('help, version and unknown commands have useful exit statuses', t => {
   const dir = fixture(t);
   const version = spawnSync(process.execPath, [cli, '--version'], { encoding: 'utf8' });
-  assert.equal(version.status, 0); assert.equal(version.stdout.trim(), '0.1.0');
+  assert.equal(version.status, 0); assert.equal(version.stdout.trim(), pkg.version);
   assert.match(spawnSync(process.execPath, [cli, '--help'], { encoding: 'utf8' }).stdout, /Python/);
   const result = invoke(dir, ['not-a-command']);
   assert.equal(result.code, 1); assert.match(result.data.error, /Unknown command/);
