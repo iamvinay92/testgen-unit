@@ -20,6 +20,7 @@ const options = {
   'dry-run': { type: 'boolean' }, 'compile-only': { type: 'boolean' },
   'skip-coverage': { type: 'boolean' }, 'skip-claude-commands': { type: 'boolean' },
   'forbid-source-changes': { type: 'boolean' }, 'fail-on-issues': { type: 'boolean' },
+  'fail-on-baseline': { type: 'boolean' },
   help: { type: 'boolean', short: 'h' }, version: { type: 'boolean', short: 'v' },
 };
 const help = `testgen-unit — Go, Java and Python unit testing for coding agents
@@ -49,7 +50,8 @@ Commands: ${commands.join(', ')}
   --skip-coverage         Static review only (does not execute project code)
   --forbid-source-changes Fail validation on changes outside test files
   --base REF              Git comparison ref (default HEAD plus untracked files)
-  --fail-on-issues        Nonzero review exit status when findings exist
+  --fail-on-issues        Nonzero review exit status for new findings in changed files
+  --fail-on-baseline      Include pre-existing findings in the review exit status
   --fail-under NUMBER     Minimum coverage percentage (0–100)
   --timeout MS            Timeout per subprocess (default 120000)
   --json                  Machine-readable result, including captured command output
@@ -81,7 +83,8 @@ try {
         if (project.blocker) console.log(`  ${project.blocker}`);
         for (const run of project.runs ?? []) if (run.output) console.log(run.output.trimEnd());
       }
-      for (const finding of result.findings ?? []) console.log(`${finding.file ?? ''}: ${finding.category}: ${finding.message}`);
+      for (const finding of result.findings ?? []) console.log(`${finding.baseline ? '[baseline] ' : ''}${finding.file ?? ''}: ${finding.category}: ${finding.message}`);
+      for (const warning of result.warnings ?? []) console.log(`Warning: ${warning}`);
       for (const file of result.created ?? []) console.log(`Created: ${file}`);
       for (const file of result.skipped ?? []) console.log(`Preserved: ${file}`);
       for (const file of result.planned ?? []) console.log(`Would create: ${file}`);

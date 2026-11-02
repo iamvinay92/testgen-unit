@@ -113,7 +113,7 @@ testgen-unit unit-coverage --language python --fail-under 80 --json
 testgen-unit review-unit-tests --language python --fail-on-issues
 ```
 
-`unit-init` adds missing guidance and preserves existing files. No default coverage target is imposed.
+`unit-init` adds missing guidance and preserves existing files. No default coverage target is imposed. Tool-managed onboarding paths (`AGENTS.md` with the `testgen-unit` marker, `.testgen/`, the installed skill and Claude command files) are excluded from the Git scope guard.
 
 ### Request suggestions from Ollama
 
@@ -167,11 +167,12 @@ These demos verify integration; they are not benchmarks of production-repository
 
 ## Limits to understand
 
-- Coverage is evidence, not proof of regression protection. Review assertions against production behavior.
+- Coverage is evidence, not proof of regression protection. Review assertions against production behavior. When the runner reports skipped tests, coverage prints a warning because skipped tests can hide uncovered code; check optional test dependencies before trusting the number.
 - Go/Python report statements; Java reports lines. Totals are weighted within a language and never averaged across languages. Missing or failed coverage makes the overall selected-language total unavailable.
 - Review is heuristic. It checks recognizable assertions, sleeps, duplicate tests, identical Python test bodies and Git scope changes. It cannot certify semantic correctness or isolation.
+- Review findings are labeled `[baseline]` when they come from files unchanged since `HEAD` or `--base REF`. `--fail-on-issues` gates only findings in changed files; add `--fail-on-baseline` to gate every finding.
 - Validation and coverage execute project code. Use trusted repositories. `review-unit-tests --skip-coverage` performs static review and Git inspection; Python source is parsed without importing it.
-- Git review needs a baseline commit. It includes untracked files and compares against `HEAD` or `--base REF`. Record onboarding and existing changes separately.
+- Git review needs a baseline commit. It includes untracked files and compares against `HEAD` or `--base REF`. Onboarding files created by `unit-init` and `install-skill` are ignored by the scope guard; other pre-existing changes are reported as baseline findings.
 - Java coverage needs fresh XML at `target/site/jacoco/jacoco.xml` or `build/reports/jacoco/test/jacocoTestReport.xml`. Aggregate/custom report locations are outside v0.1 support.
 - Unittest status checks run tests; collection-only mode is unsupported. Exclusions inside its discovery directory require narrower `pythonTestDir` or pytest. Empty unittest suites fail.
 - Custom Python runner commands and Windows build wrappers are outside v0.1 support. Linux and macOS are the CI platforms.
