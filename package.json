@@ -1,6 +1,6 @@
 {
   "name": "testgen-unit",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Agent prompts, validation, coverage and review for Go, Java and Python unit tests",
   "repository": {
     "type": "git",
